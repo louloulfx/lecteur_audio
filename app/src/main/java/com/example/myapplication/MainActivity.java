@@ -6,12 +6,18 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.MediaStore;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -24,12 +30,11 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST = 1;
-
-    ArrayList<String> arrayList;
-
-    ListView listView;
-
-    ArrayAdapter<String> adapter;
+    private ArrayList<Song> songList;
+    private ListView songView;
+    private MusicService musicSrv;
+    private Intent playIntent;
+    private boolean musicBound=false;
 
 
     @Override
@@ -48,64 +53,93 @@ public class MainActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST);
             }
         } else {
-            doSuff();
+            songView = (ListView)findViewById(R.id.song_list);
+            songList = new ArrayList<Song>();
+            getMusicList();
+            MusicAdapter musicAdapter = new MusicAdapter(this, songList);
+            songView.setAdapter(musicAdapter);
         }
     }
 
-    public void doSuff() {
-        listView = (ListView) findViewById(R.id.listView);
-        arrayList = new ArrayList<>();
-        getMusic();
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arrayList);
-        listView.setAdapter(adapter);
+    public void getMusicList() {
+        ContentResolver musicResolver = getContentResolver();
+        Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-
-            }
-        });
-    }
-
-    public void getMusic(){
-        ContentResolver contentResolver = getContentResolver();
-        Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        Cursor songCursor = contentResolver.query(songUri, null, null, null, null);
-
-        if(songUri != null && songCursor.moveToFirst()) {
-            int songTitle = songCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
-            int songDuration = songCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
-            int songSize = songCursor.getColumnIndex(MediaStore.Audio.Media.SIZE);
-
+        if(musicCursor!=null && musicCursor.moveToFirst()){
+            //get columns
+            int titleColumn = musicCursor.getColumnIndex
+                    (android.provider.MediaStore.Audio.Media.TITLE);
+            int idColumn = musicCursor.getColumnIndex
+                    (android.provider.MediaStore.Audio.Media._ID);
+            int durationColumn = musicCursor.getColumnIndex
+                    (MediaStore.Audio.Media.DURATION);
+            int sizeColumn = musicCursor.getColumnIndex
+                    (MediaStore.Audio.Media.SIZE);
+            //add songs to list
             do {
-                String currentTitle = songCursor.getString(songTitle);
-                String currentDuration = songCursor.getString(songDuration);
-                String currentSize = songCursor.getString(songSize);
-                arrayList.add("Title: " + currentTitle + "\n"
-                        + "Duration: " + currentDuration+ "\n"
-                        + "Size: " + currentSize);
-            } while(songCursor.moveToNext());
+                long thisId = musicCursor.getLong(idColumn);
+                String thisTitle = musicCursor.getString(titleColumn);
+                String thisDuration = musicCursor.getString(durationColumn);
+                String thisSize = musicCursor.getString(sizeColumn);
+                songList.add(new Song(thisId, thisTitle, thisDuration, thisSize));
+            }
+            while (musicCursor.moveToNext());
         }
+    }
+
+    //connect to the service
+    private ServiceConnection musicConnection = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder)service;
+            //get service
+            musicSrv = binder.getService();
+            //pass list
+            musicSrv.setList(songList);
+            musicBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicBound = false;
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(playIntent==null){
+            playIntent = new Intent(this, MusicService.class);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            startService(playIntent);
+        }
+    }
+
+    public void SongChoose(View view){
+        musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
+        musicSrv.playSong();
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults ) {
-        switch(requestCode) {
-            case PERMISSION_REQUEST: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    if(ContextCompat.checkSelfPermission(MainActivity.this,
-                            Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show();
-
-                        doSuff();
-
-                    }
-                } else {
-                    Toast.makeText(this, "No permission granted", Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-                return;
-            }
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_shuffle:
+                //shuffle
+                break;
+            case R.id.action_end:
+                stopService(playIntent);
+                musicSrv=null;
+                System.exit(0);
+                break;
         }
+        return super.onOptionsItemSelected(item);    }
+
+    @Override
+    protected void onDestroy() {
+        stopService(playIntent);
+        musicSrv=null;
+        super.onDestroy();
     }
 }
