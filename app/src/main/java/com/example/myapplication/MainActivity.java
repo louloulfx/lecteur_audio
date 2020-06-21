@@ -17,17 +17,22 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
+import android.widget.MediaController;
+import android.widget.MediaController.MediaPlayerControl;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MediaController.MediaPlayerControl {
 
     private static final int PERMISSION_REQUEST = 1;
     private ArrayList<Song> songList;
@@ -35,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private MusicService musicSrv;
     private Intent playIntent;
     private boolean musicBound=false;
+    private MusicController controller;
+    private boolean paused=false, playbackPaused=false;
 
 
     @Override
@@ -58,7 +65,45 @@ public class MainActivity extends AppCompatActivity {
             getMusicList();
             MusicAdapter musicAdapter = new MusicAdapter(this, songList);
             songView.setAdapter(musicAdapter);
+            setController();
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(playIntent==null){
+            playIntent = new Intent(this, MusicService.class);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            startService(playIntent);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+//        controller.hide();
+        super.onStop();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_shuffle:
+                musicSrv.setShuffle();
+                break;
+            case R.id.action_end:
+                stopService(playIntent);
+                musicSrv=null;
+                System.exit(0);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     public void getMusicList() {
@@ -88,15 +133,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //connect to the service
+    private void setController(){
+        controller = new MusicController(this);
+        controller.setPrevNextListeners(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playNext();
+            }
+        }, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playPrev();
+            }
+        });
+        controller.setMediaPlayer(this);
+        controller.setAnchorView(findViewById(R.id.song_list));
+        controller.setEnabled(true);
+    }
+
+    private void playNext(){
+        musicSrv.playNext();
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
+        }
+        controller.show(0);
+    }
+
+    private void playPrev(){
+        musicSrv.playPrev();
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
+        }
+        controller.show(0);
+    }
+
     private ServiceConnection musicConnection = new ServiceConnection(){
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder binder = (MusicService.MusicBinder)service;
-            //get service
+
             musicSrv = binder.getService();
-            //pass list
+
             musicSrv.setList(songList);
             musicBound = true;
         }
@@ -108,38 +188,96 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        if(playIntent==null){
-            playIntent = new Intent(this, MusicService.class);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-            startService(playIntent);
+    protected void onPause(){
+        super.onPause();
+        paused=true;
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        if(paused){
+            setController();
+            paused=false;
         }
     }
 
     public void SongChoose(View view){
         musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
         musicSrv.playSong();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_shuffle:
-                //shuffle
-                break;
-            case R.id.action_end:
-                stopService(playIntent);
-                musicSrv=null;
-                System.exit(0);
-                break;
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
         }
-        return super.onOptionsItemSelected(item);    }
+        controller.show(0);
+    }
 
     @Override
     protected void onDestroy() {
         stopService(playIntent);
         musicSrv=null;
         super.onDestroy();
+    }
+
+    @Override
+    public int getDuration() {
+        if(musicSrv!=null && musicBound && musicSrv.isPng())
+            return musicSrv.getDur();
+        else return 0;
+    }
+
+    @Override
+    public int getCurrentPosition() {
+        if(musicSrv!=null && musicBound && musicSrv.isPng())
+            return musicSrv.getPosn();
+        else return 0;
+    }
+
+    @Override
+    public boolean isPlaying() {
+        if(musicSrv!=null && musicBound)
+            return musicSrv.isPng();
+        return false;
+    }
+
+    @Override
+    public void start() {
+        musicSrv.go();
+    }
+
+    @Override
+    public void seekTo(int i) {
+        musicSrv.seek(i);
+    }
+
+    @Override
+    public void pause() {
+        playbackPaused=true;
+        musicSrv.pausePlayer();
+    }
+
+    @Override
+    public int getBufferPercentage() {
+        return 0;
+    }
+
+    @Override
+    public boolean canPause() {
+        return true;
+    }
+
+    @Override
+    public boolean canSeekBackward() {
+        return true;
+    }
+
+    @Override
+    public boolean canSeekForward() {
+        return true;
+    }
+
+    @Override
+    public int getAudioSessionId() {
+        return 0;
     }
 }
