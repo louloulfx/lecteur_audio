@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -10,8 +11,10 @@ import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -67,6 +70,40 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public String convertDuration(long duration) {
+        String out = null;
+        long hours=0;
+        try {
+            hours = (duration / 3600000);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return out;
+        }
+        long remaining_minutes = (duration - (hours * 3600000)) / 60000;
+        String minutes = String.valueOf(remaining_minutes);
+        if (minutes.equals("0")) {
+            minutes = "00";
+        }
+        long remaining_seconds = (duration - (hours * 3600000) - (remaining_minutes * 60000));
+        String seconds = String.valueOf(remaining_seconds);
+        if (seconds.length() < 2) {
+            seconds = "00";
+        } else {
+            seconds = seconds.substring(0, 2);
+        }
+
+        if (hours > 0) {
+            out = hours + ":" + minutes + ":" + seconds;
+        } else {
+            out = minutes + ":" + seconds;
+        }
+
+        return out;
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     public void getMusic(){
         ContentResolver contentResolver = getContentResolver();
         Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -79,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
             do {
                 String currentTitle = songCursor.getString(songTitle);
-                String currentDuration = songCursor.getString(songDuration);
+                String currentDuration = convertDuration(songCursor.getInt(songDuration));
                 String currentSize = songCursor.getString(songSize);
                 arrayList.add("Title: " + currentTitle + "\n"
                         + "Duration: " + currentDuration+ "\n"
