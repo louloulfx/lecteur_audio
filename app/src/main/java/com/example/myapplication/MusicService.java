@@ -24,12 +24,10 @@ public class MusicService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener {
 
-    //media player
     private MediaPlayer player;
-    //song list
     ArrayList<Song> songs;
-    //current position
-    private int songPosn;
+
+    private int position;
     private final IBinder musicBind = new MusicBinder();
     private String songTitle="";
     private static final int NOTIFY_ID=1;
@@ -39,7 +37,7 @@ public class MusicService extends Service implements
 
     public void onCreate(){
         super.onCreate();
-        songPosn=0;
+        position=0;
         player = new MediaPlayer();
         initMusicPlayer();
         rand=new Random();
@@ -78,7 +76,7 @@ public class MusicService extends Service implements
 
     public void playSong(){
         player.reset();
-        Song playSong = songs.get(songPosn);
+        Song playSong = songs.get(position);
         songTitle=playSong.getTitle();
         long currSong = playSong.getID();
         Uri trackUri = ContentUris.withAppendedId(
@@ -94,11 +92,6 @@ public class MusicService extends Service implements
 
 
         player.prepareAsync();
-    }
-
-    public void setShuffle(){
-        if(shuffle) shuffle=false;
-        else shuffle=true;
     }
 
     @Override
@@ -142,7 +135,7 @@ public class MusicService extends Service implements
     }
 
     public void setSong(int songIndex){
-        songPosn=songIndex;
+        position=songIndex;
     }
 
     public int getPosn(){
@@ -169,23 +162,17 @@ public class MusicService extends Service implements
         player.start();
     }
 
-    public void playPrev(){
-        songPosn--;
-        if(songPosn < 0) songPosn=songs.size()-1;
-        playSong();
-    }
-
     public void playNext(){
         if(shuffle){
-            int newSong = songPosn;
-            while(newSong==songPosn){
+            int newSong = position;
+            while(newSong==position){
                 newSong=rand.nextInt(songs.size());
             }
-            songPosn=newSong;
+            position=newSong;
         }
         else{
-            songPosn++;
-            if(songPosn >=songs.size()) songPosn=0;
+            position++;
+            if(position >=songs.size()) position=0;
         }
         playSong();
     }

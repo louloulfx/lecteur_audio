@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
 
     @Override
     protected void onStop() {
-//        controller.hide();
+        controller.hide();
         super.onStop();
     }
 
@@ -95,12 +95,11 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_shuffle:
-                musicSrv.setShuffle();
+                musicSrv.go();
                 break;
             case R.id.action_end:
-                stopService(playIntent);
-                musicSrv=null;
-                System.exit(0);
+                playbackPaused=true;
+                musicSrv.pausePlayer();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -135,38 +134,6 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
 
     private void setController(){
         controller = new MusicController(this);
-        controller.setPrevNextListeners(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                playNext();
-            }
-        }, new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                playPrev();
-            }
-        });
-        controller.setMediaPlayer(this);
-        controller.setAnchorView(findViewById(R.id.song_list));
-        controller.setEnabled(true);
-    }
-
-    private void playNext(){
-        musicSrv.playNext();
-        if(playbackPaused){
-            setController();
-            playbackPaused=false;
-        }
-        controller.show(0);
-    }
-
-    private void playPrev(){
-        musicSrv.playPrev();
-        if(playbackPaused){
-            setController();
-            playbackPaused=false;
-        }
-        controller.show(0);
     }
 
     private ServiceConnection musicConnection = new ServiceConnection(){
@@ -197,7 +164,6 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     protected void onResume(){
         super.onResume();
         if(paused){
-            setController();
             paused=false;
         }
     }
