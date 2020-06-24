@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -14,6 +15,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
@@ -21,6 +23,7 @@ import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -91,6 +94,39 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         return super.onCreateOptionsMenu(menu);
     }
 
+    public String convertDuration(long duration) {
+        String out = null;
+        long hours=0;
+        try {
+            hours = (duration / 3600000);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return out;
+        }
+        long remaining_minutes = (duration - (hours * 3600000)) / 60000;
+        String minutes = String.valueOf(remaining_minutes);
+        if (minutes.equals("0")) {
+            minutes = "00";
+        }
+        long remaining_seconds = (duration - (hours * 3600000) - (remaining_minutes * 60000));
+        String seconds = String.valueOf(remaining_seconds);
+        if (seconds.length() < 2) {
+            seconds = "00";
+        } else {
+            seconds = seconds.substring(0, 2);
+        }
+
+        if (hours > 0) {
+            out = hours + ":" + minutes + ":" + seconds;
+        } else {
+            out = minutes + ":" + seconds;
+        }
+
+        return out;
+
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -124,8 +160,8 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
             do {
                 long thisId = musicCursor.getLong(idColumn);
                 String thisTitle = musicCursor.getString(titleColumn);
-                String thisDuration = musicCursor.getString(durationColumn);
-                String thisSize = musicCursor.getString(sizeColumn);
+                String thisDuration = convertDuration(musicCursor.getInt(durationColumn));
+                String thisSize = android.text.format.Formatter.formatShortFileSize(MainActivity.this, musicCursor.getInt(sizeColumn));
                 songList.add(new Song(thisId, thisTitle, thisDuration, thisSize));
             }
             while (musicCursor.moveToNext());
