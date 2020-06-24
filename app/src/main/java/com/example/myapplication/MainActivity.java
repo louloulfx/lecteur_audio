@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
             do {
                 String currentTitle = songCursor.getString(songTitle);
                 String currentDuration = convertDuration(songCursor.getInt(songDuration));
-                String currentSize = songCursor.getString(songSize);
+                String currentSize = android.text.format.Formatter.formatShortFileSize(MainActivity.this, songCursor.getInt(songSize));
                 arrayList.add("Title: " + currentTitle + "\n"
                         + "Duration: " + currentDuration+ "\n"
                         + "Size: " + currentSize);
