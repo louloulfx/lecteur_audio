@@ -140,15 +140,15 @@ public class MusicService extends Service implements
         Notification not = builder.build();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            startMyOwnForeground();
+            startForegroundRecent();
         else
             startForeground(NOTIFY_ID, not);
 
     }
 
-    private void startMyOwnForeground(){
-        String NOTIFICATION_CHANNEL_ID = "com.example.simpleapp";
-        String channelName = "My Background Service";
+    private void startForegroundRecent() {
+        String NOTIFICATION_CHANNEL_ID = "com.example.myapplication";
+        String channelName = "Lecteur de musique";
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
         chan.setLightColor(Color.BLUE);
         chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
