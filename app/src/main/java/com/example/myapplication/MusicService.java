@@ -23,6 +23,7 @@ import android.app.PendingIntent;
 import android.view.Menu;
 import android.view.MenuInflater;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class MusicService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener {
 
-    private MediaPlayer player;
+    private MediaPlayer mediaPlayer;
     ArrayList<Song> songs;
 
     private int position;
@@ -45,18 +46,18 @@ public class MusicService extends Service implements
     public void onCreate(){
         super.onCreate();
         position=0;
-        player = new MediaPlayer();
+        mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         rand=new Random();
     }
 
     public void initMusicPlayer(){
-        player.setWakeMode(getApplicationContext(),
+        mediaPlayer.setWakeMode(getApplicationContext(),
                 PowerManager.PARTIAL_WAKE_LOCK);
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        player.setOnPreparedListener(this);
-        player.setOnCompletionListener(this);
-        player.setOnErrorListener(this);
+        mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mediaPlayer.setOnPreparedListener(this);
+        mediaPlayer.setOnCompletionListener(this);
+        mediaPlayer.setOnErrorListener(this);
     }
 
     public void setList(ArrayList<Song> theSongs){
@@ -76,13 +77,13 @@ public class MusicService extends Service implements
 
     @Override
     public boolean onUnbind(Intent intent){
-        player.stop();
-        player.release();
+        mediaPlayer.stop();
+        mediaPlayer.release();
         return false;
     }
 
     public void playSong(){
-        player.reset();
+        mediaPlayer.reset();
         Song playSong = songs.get(position);
         songTitle=playSong.getTitle();
         long currSong = playSong.getID();
@@ -91,14 +92,14 @@ public class MusicService extends Service implements
                 currSong);
 
         try{
-            player.setDataSource(getApplicationContext(), trackUri);
+            mediaPlayer.setDataSource(getApplicationContext(), trackUri);
         }
         catch(Exception e){
             Log.e("MUSIC SERVICE", "Error setting data source", e);
         }
 
 
-        player.prepareAsync();
+        mediaPlayer.prepareAsync();
     }
 
     @Override
@@ -108,7 +109,7 @@ public class MusicService extends Service implements
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        if(player.getCurrentPosition() > 0){
+        if(mediaPlayer.getCurrentPosition() > 0){
             mp.reset();
             playNext();
         }
@@ -146,6 +147,7 @@ public class MusicService extends Service implements
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void startForegroundRecent() {
         String NOTIFICATION_CHANNEL_ID = "com.example.myapplication";
         String channelName = "Lecteur de musique";
@@ -174,27 +176,27 @@ public class MusicService extends Service implements
     }
 
     public int getPosn(){
-        return player.getCurrentPosition();
+        return mediaPlayer.getCurrentPosition();
     }
 
     public int getDur(){
-        return player.getDuration();
+        return mediaPlayer.getDuration();
     }
 
     public boolean isPng(){
-        return player.isPlaying();
+        return mediaPlayer.isPlaying();
     }
 
     public void pausePlayer(){
-        player.pause();
+        mediaPlayer.pause();
     }
 
     public void seek(int posn){
-        player.seekTo(posn);
+        mediaPlayer.seekTo(posn);
     }
 
     public void go(){
-        player.start();
+        mediaPlayer.start();
     }
 
     public void playNext(){

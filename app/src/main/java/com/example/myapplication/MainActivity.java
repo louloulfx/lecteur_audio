@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     private static final int PERMISSION_REQUEST = 1;
     private ArrayList<Song> songList;
     private ListView songView;
-    private MusicService musicSrv;
+    private MusicService musicService;
     private Intent playIntent;
     private boolean musicBound=false;
     private MusicController controller;
@@ -100,7 +100,6 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         try {
             hours = (duration / 3600000);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
             return out;
         }
@@ -130,12 +129,12 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_shuffle:
-                musicSrv.go();
+            case R.id.start:
+                musicService.go();
                 break;
-            case R.id.action_end:
+            case R.id.pause:
                 playbackPaused=true;
-                musicSrv.pausePlayer();
+                musicService.pausePlayer();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -178,9 +177,9 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder binder = (MusicService.MusicBinder)service;
 
-            musicSrv = binder.getService();
+            musicService = binder.getService();
 
-            musicSrv.setList(songList);
+            musicService.setList(songList);
             musicBound = true;
         }
 
@@ -205,8 +204,8 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     }
 
     public void SongChoose(View view){
-        musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
-        musicSrv.playSong();
+        musicService.setSong(Integer.parseInt(view.getTag().toString()));
+        musicService.playSong();
         if(playbackPaused){
             setController();
             playbackPaused=false;
@@ -217,45 +216,45 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     @Override
     protected void onDestroy() {
         stopService(playIntent);
-        musicSrv=null;
+        musicService=null;
         super.onDestroy();
     }
 
     @Override
     public int getDuration() {
-        if(musicSrv!=null && musicBound && musicSrv.isPng())
-            return musicSrv.getDur();
+        if(musicService!=null && musicBound && musicService.isPng())
+            return musicService.getDur();
         else return 0;
     }
 
     @Override
     public int getCurrentPosition() {
-        if(musicSrv!=null && musicBound && musicSrv.isPng())
-            return musicSrv.getPosn();
+        if(musicService!=null && musicBound && musicService.isPng())
+            return musicService.getPosn();
         else return 0;
     }
 
     @Override
     public boolean isPlaying() {
-        if(musicSrv!=null && musicBound)
-            return musicSrv.isPng();
+        if(musicService!=null && musicBound)
+            return musicService.isPng();
         return false;
     }
 
     @Override
     public void start() {
-        musicSrv.go();
+        musicService.go();
     }
 
     @Override
     public void seekTo(int i) {
-        musicSrv.seek(i);
+        musicService.seek(i);
     }
 
     @Override
     public void pause() {
         playbackPaused=true;
-        musicSrv.pausePlayer();
+        musicService.pausePlayer();
     }
 
     @Override
