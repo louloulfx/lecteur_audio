@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         return out;
 
     }
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
