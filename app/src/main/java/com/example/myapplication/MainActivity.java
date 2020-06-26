@@ -136,6 +136,11 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
                 playbackPaused=true;
                 musicService.pausePlayer();
                 break;
+            case R.id.stop:
+                stopService(playIntent);
+                musicService=null;
+                System.exit(0);
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
