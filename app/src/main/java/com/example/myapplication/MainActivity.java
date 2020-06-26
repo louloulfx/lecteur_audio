@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
 
         if(ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -130,11 +132,13 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.start:
-                musicService.go();
-                break;
-            case R.id.pause:
-                playbackPaused=true;
-                musicService.pausePlayer();
+                if (musicService.isPng()) {
+                    musicService.pausePlayer();
+                    item.setIcon(R.drawable.play);
+                } else {
+                    musicService.go();
+                    item.setIcon(R.drawable.pause);
+                }
                 break;
             case R.id.stop:
                 stopService(playIntent);

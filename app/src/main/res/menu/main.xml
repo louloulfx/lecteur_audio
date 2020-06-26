@@ -4,16 +4,9 @@
 
     <item
         android:id="@+id/start"
-        android:icon="@drawable/play"
+        android:icon="@drawable/pause"
         android:orderInCategory="1"
         android:title="Shuffle"
-        app:showAsAction="always" />
-
-    <item
-        android:id="@+id/pause"
-        android:icon="@drawable/pause"
-        android:orderInCategory="2"
-        android:title="End"
         app:showAsAction="always" />
 
     <item
